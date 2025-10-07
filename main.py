@@ -1,11 +1,10 @@
 import os
-from agents.search_agent import search_agent
-from agents.data_agent import data_agent
-from agents.visualization_agent import visualization_agent
-from agents.orchestrator_agent import orchestrator_agent
+from nba_agents.search_agent import search_agent
+from nba_agents.data_agent import data_agent
+from nba_agents.visualization_agent import visualization_agent
+from nba_agents.orchestrator_agent import orchestrator_agent
+
 import json
-
-
 
 class NBAStatsChatbot:
     def __init__(self):
@@ -23,20 +22,20 @@ class NBAStatsChatbot:
         print(f"\n🏀 Processing query: {user_query}\n")
         
         # Step 1: Search for information
-        print(" Step 1: Searching for NBA data...")
+        print("📊 Step 1: Searching for NBA data...")
         search_response = self.search_agent.run(user_query)
         search_results = search_response.messages[-1].content
         print(f"✓ Search complete\n")
         
         # Step 2: Extract and structure data
-        print(" Step 2: Processing and structuring data...")
+        print("📋 Step 2: Processing and structuring data...")
         data_prompt = f"Extract structured data from these search results:\n\n{search_results}"
         data_response = self.data_agent.run(data_prompt)
         structured_data = data_response.messages[-1].content
         print(f"✓ Data structured\n")
         
         # Step 3: Determine if visualization is needed and create it
-        print(" Step 3: Creating visualization...")
+        print("📈 Step 3: Creating visualization...")
         needs_viz = self._needs_visualization(user_query)
         visualization = None
         
@@ -52,7 +51,7 @@ class NBAStatsChatbot:
             print(f"✓ No visualization needed\n")
         
         # Step 4: Synthesize final response
-        print(" Step 4: Generating final response...")
+        print("🎯 Step 4: Generating final response...")
         final_prompt = (
             f"User query: {user_query}\n\n"
             f"Search results: {search_results}\n\n"
@@ -110,7 +109,7 @@ class NBAStatsChatbot:
                 result = self.process_query(user_input)
                 
                 # Display the answer
-                print(f"\n NBA Stats Bot:\n")
+                print(f"\n🤖 NBA Stats Bot:\n")
                 print(result['answer'])
                 print("\n" + "="*80 + "\n")
                 
@@ -118,7 +117,7 @@ class NBAStatsChatbot:
                 print("\n\n👋 Thanks for using NBA Stats Chatbot!")
                 break
             except Exception as e:
-                print(f"\n Error: {str(e)}\n")
+                print(f"\n❌ Error: {str(e)}\n")
                 print("Please try again with a different query.\n")
 
 
@@ -130,7 +129,7 @@ def main():
     example_mode = input("Run in (1) Interactive mode or (2) Example mode? [1/2]: ").strip()
     
     if example_mode == "2":
-        print("\n Running example queries...\n")
+        print("\n🧪 Running example queries...\n")
         example_queries = [
             "What are LeBron James' career stats?",
             "Compare Stephen Curry and Damian Lillard's three-point shooting",
@@ -140,7 +139,7 @@ def main():
         for query in example_queries:
             print(f"\n{'='*80}")
             result = bot.process_query(query)
-            print(f"\n Answer:\n{result['answer']}")
+            print(f"\n🤖 Answer:\n{result['answer']}")
             print(f"\n{'='*80}\n")
             input("Press Enter to continue...")
     else:

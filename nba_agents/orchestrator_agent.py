@@ -1,7 +1,7 @@
 from agents import Agent, ModelSettings
-from search_agent import search_agent
-from data_agent import data_agent
-from visualization_agent import visualization_agent
+from nba_agents.search_agent import search_agent
+from nba_agents.data_agent import data_agent
+from nba_agents.visualization_agent import visualization_agent
 
 INSTRUCTIONS = (
     "You are the NBA Stats Chatbot Orchestrator. You coordinate between specialized agents "
