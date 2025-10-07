@@ -19,6 +19,8 @@ TRUSTED_NBA_SOURCES = [
     'basketball-reference.com',
     'theathletic.com',
     'bleacherreport.com',
+    'sports.yahoo.com',
+    'cbssports.com'
 ]
 
 # Agent Settings
