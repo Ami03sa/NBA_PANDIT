@@ -1,9 +1,11 @@
 import os
-from search_agent import search_agent
-from data_agent import data_agent
-from visualization_agent import visualization_agent
-from orchestrator_agent import orchestrator_agent
+from agents.search_agent import search_agent
+from agents.data_agent import data_agent
+from agents.visualization_agent import visualization_agent
+from agents.orchestrator_agent import orchestrator_agent
 import json
+
+
 
 class NBAStatsChatbot:
     def __init__(self):
