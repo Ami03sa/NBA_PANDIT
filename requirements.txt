@@ -1,6 +1,17 @@
-requests
-python-dotenv
-gradio
-pypdf
-openai
-openai-agents
+openai>=1.12.0
+agents>=0.1.0  # Replace with your actual agents library
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Utilities
+python-dotenv>=1.0.0
+tabulate>=0.9.0  # For markdown table rendering
+
+# Optional: Enhanced visualizations
+plotly>=5.14.0
