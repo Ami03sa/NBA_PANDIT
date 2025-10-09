@@ -1,41 +1,40 @@
-# visualization_utils.py
 import matplotlib.pyplot as plt
-from io import BytesIO
+import io
 from PIL import Image
 
 def generate_chart_from_json(viz_json):
-    chart_type = viz_json.get("visualization_type")
-    data = viz_json.get("data", {})
-    config = viz_json.get("config", {})
+    """
+    Generates a matplotlib chart based on visualization JSON structure.
+    Returns a PIL image for Gradio.
+    Expected JSON keys: {"type": "bar"|"line"|"pie", "x": [...], "y": [...], "title": "..."}
+    """
+    chart_type = viz_json.get("type", "bar").lower()
+    x = viz_json.get("x", [])
+    y = viz_json.get("y", [])
+    title = viz_json.get("title", "NBA Visualization")
 
-    if chart_type == "bar_chart":
-        labels = data.get("labels", [])
-        players = [key for key in data.keys() if key != "labels"]
-        colors = config.get("colors", ["#00BFFF", "#FF4500"])
-        bar_width = config.get("bar_width", 0.4)
+    plt.figure(figsize=(6, 4))
+    plt.title(title)
 
-        x = range(len(labels))
-        fig, ax = plt.subplots(figsize=(8, 5))
+    try:
+        if chart_type == "bar":
+            plt.bar(x, y)
+        elif chart_type == "line":
+            plt.plot(x, y, marker='o')
+        elif chart_type == "pie":
+            plt.pie(y, labels=x, autopct="%1.1f%%")
+        else:
+            plt.bar(x, y)  # default fallback
 
-        for i, player in enumerate(players):
-            values = data[player]
-            ax.bar([p + i*bar_width for p in x], values, width=bar_width, color=colors[i], label=player)
-
-        ax.set_xticks([p + bar_width/2 for p in x])
-        ax.set_xticklabels(labels)
-        ax.set_ylabel(config.get("y_axis_label", "Values"))
-        ax.set_xlabel(config.get("x_axis_label", "Statistics"))
-        ax.set_title(config.get("title", ""), fontsize=config.get("title_font_size", 16))
-        ax.legend()
         plt.tight_layout()
-
-        # Convert to PIL Image for Gradio
-        buf = BytesIO()
-        plt.savefig(buf, format='PNG')
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png")
         buf.seek(0)
-        image = Image.open(buf)
-        plt.close(fig)
-        return image
+        plt.close()
 
-    else:
-        raise ValueError(f"Unsupported visualization type: {chart_type}")
+        return Image.open(buf)
+
+    except Exception as e:
+        print(f"❌ Visualization generation failed: {e}")
+        plt.close()
+        return None
