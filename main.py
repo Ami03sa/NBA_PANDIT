@@ -593,21 +593,17 @@ def main():
             chart = result.get('chart_image')
             answer = result.get('answer', 'No response generated')
 
-            # Save chart to temporary file if it exists
-            chart_path = None
+            # Build multimodal content for Gradio
             if chart:
                 # Create temp file
                 temp_dir = tempfile.gettempdir()
                 chart_path = os.path.join(temp_dir, f"nba_chart_{hash(user_message)}.png")
                 chart.save(chart_path)
                 
-                # Gradio messages format: tuple of (filepath, alt_text)
-                content = [
-                    {"type": "text", "text": answer},
-                    {"type": "image", "image": {"path": chart_path}}
-                ]
+                # Multimodal format: {"text": str, "files": [paths]}
+                content = {"text": answer, "files": [{"file": chart_path}]}
             else:
-                content = answer
+                content = {"text": answer}
 
             # Append to history
             history = history + [
@@ -615,7 +611,7 @@ def main():
                 {"role": "assistant", "content": content}
             ]
             
-            return history, ""  # Return empty string to clear input
+            return history, ""
 
         with gr.Blocks(theme=gr.themes.Soft()) as demo:
             gr.Markdown("# 🏀 NBA Stats Chatbot\nAsk me anything about NBA statistics, players, and comparisons!")
