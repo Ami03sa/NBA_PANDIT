@@ -1,4 +1,3 @@
-# main.py - FINAL FULLY FIXED CODE
 from nba_agents.search_agent import search_agent
 from nba_agents.data_agent import data_agent
 from nba_agents.visualization_agent import visualization_agent
@@ -9,7 +8,9 @@ from dotenv import load_dotenv
 import gradio as gr
 from vizualization_utils import generate_chart_from_json
 import json
-import re # <-- ADDED IMPORT FOR REGULAR EXPRESSIONS
+import re 
+import os 
+
 
 load_dotenv(override=True)
 
