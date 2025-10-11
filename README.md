@@ -1,5 +1,5 @@
 
-# NBA_PANDIT
+
 
 **NBA_PANDIT** is an AI-powered NBA stats chatbot that provides real-time player statistics, team data, and game insights. It leverages an **agentic workflow**, combining multiple AI agents to handle queries, perform web searches, and summarize information into concise, accurate responses. The system uses **Python**, **Gradio**, and **OpenAI's API** to deliver a smooth, interactive experience for basketball fans.
 
