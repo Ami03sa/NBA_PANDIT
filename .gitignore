@@ -1,4 +1,16 @@
-.env
-.env.*
+# Python
+__pycache__/
+*.pyc
+*.pyd
+*.so
+
+# OS
+.DS_Store
+.vscode/
+
+# Virtual Environment
 venv/
-.venv/
+env/
+
+# Other
+*~
