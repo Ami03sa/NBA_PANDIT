@@ -1,5 +1,6 @@
 # OpenAI API
 openai>=1.0.0,<3.0.0
+openai-agents  # Add this line!
 
 # Environment variable management
 python-dotenv>=1.0.0,<1.1.0
