@@ -1,3 +1,9 @@
+---
+title: NBA_Agentic_Statsbot
+app_file: main.py
+sdk: gradio
+sdk_version: 5.49.1
+---
 
 
 

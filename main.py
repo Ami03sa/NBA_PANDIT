@@ -200,9 +200,15 @@ def launch_gradio():
     )
     iface.launch()
 
+# In main.py
+# In main.py
 def main():
     bot = NBAStatsChatbot()
-    mode = input("Run in (1) Terminal Mode or (2) Gradio Web Mode? [1/2]: ").strip()
+    
+    # HARDCODED for Hugging Face deployment
+    # mode = input("Run in (1) Terminal Mode or (2) Gradio Web Mode? [1/2]: ").strip() # <-- DELETE OR COMMENT OUT THIS LINE
+    mode = "2" # <-- ADD THIS LINE
+    
     if mode == "2":
         launch_gradio()
     else:
