@@ -23,6 +23,7 @@ const Index = () => {
     scrollToBottom();
   }, [messages, isTyping]);
 
+  // ✅ Updated function to call your Python backend (FastAPI or Flask)
   const handleSend = async (content: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -30,25 +31,51 @@ const Index = () => {
       content,
     };
 
+    // Add user message immediately
     setMessages((prev) => [...prev, userMessage]);
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // 👇 Replace this with your actual backend URL if different
+      const response = await fetch("/api/chat", {
+
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: content }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "I'm a demo AI assistant. In a real implementation, I would connect to an AI service to provide intelligent responses. This is where you'd integrate with services like OpenAI, Claude, or Lovable AI.",
+        content: data.reply || "No reply received.",
       };
+
       setMessages((prev) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error("Error connecting to backend:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "⚠️ Server error. Please try again.",
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (
     <div className="flex flex-col h-screen bg-chat-bg">
       {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 sticky top-0 z-10">
+      <header className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-center">
           <BasketballLogo />
         </div>
@@ -58,7 +85,11 @@ const Index = () => {
       <main className="flex-1 overflow-y-auto">
         <div className="min-h-full">
           {messages.map((message) => (
-            <ChatMessage key={message.id} role={message.role} content={message.content} />
+            <ChatMessage
+              key={message.id}
+              role={message.role}
+              content={message.content}
+            />
           ))}
           {isTyping && <TypingIndicator />}
           <div ref={messagesEndRef} />

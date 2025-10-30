@@ -5,16 +5,19 @@ from nba_agents.orchestrator_agent import orchestrator_agent
 from agents import Runner
 import asyncio
 from dotenv import load_dotenv
-import gradio as gr
-from vizualization_utils import generate_chart_from_json
 import json
-import re 
-import os 
+import re
+import os
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from vizualization_utils import generate_chart_from_json
 
-
+# Load environment variables
 load_dotenv(override=True)
 
-
+# -----------------------------
+#   NBA STATS CHATBOT CLASS
+# -----------------------------
 class NBAStatsChatbot:
     def __init__(self):
         self.search_agent = search_agent
@@ -28,191 +31,131 @@ class NBAStatsChatbot:
         return getattr(result, 'final_output', result)
 
     def process_query(self, user_query: str) -> dict:
-        # Create a new event loop for synchronous calls (necessary for non-async main function)
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         try:
             # Step 1: Search
-            print("1. Running Search Agent...")
+            print("1️⃣ Running Search Agent...")
             search_response = loop.run_until_complete(self._run_agent(self.search_agent, user_query))
             search_results = getattr(search_response, 'data', str(search_response))
 
-            # Step 2: Data extraction
-            print("2. Running Data Extraction Agent...")
+            # Step 2: Data Extraction
+            print("2️⃣ Running Data Agent...")
             data_prompt = f"Extract structured data from these search results:\n\n{search_results}"
             data_response = loop.run_until_complete(self._run_agent(self.data_agent, data_prompt))
             structured_data = getattr(data_response, 'data', str(data_response))
 
-            # Step 3: Visualization
+            # Step 3: Visualization (if needed)
             needs_viz = self._needs_visualization(user_query)
             viz_json = None
             chart_image = None
-            viz_json_raw = None
 
             if needs_viz:
-                print("3. Running Visualization Agent...")
-                
-                # --- FINAL FIXED VIZ_PROMPT FOR DATA STRUCTURE CLARITY ---
+                print("3️⃣ Running Visualization Agent...")
                 viz_prompt = (
-                    f"Create appropriate visualization for this query: {user_query}\n\n"
-                    f"Using this structured data:\n{structured_data}\n\n"
-                    f"CRITICAL DATA REMINDER: Ensure the 'data' field in your JSON output "
-                    f"contains a key named **'labels'** (for x-axis categories) and additional keys "
-                    f"for each data series, where values are lists of numbers aligned with the labels."
+                    f"Create a visualization for: {user_query}\n"
+                    f"Using structured data:\n{structured_data}\n\n"
+                    f"Ensure JSON includes 'labels' (x-axis) and numeric lists for each series."
                 )
-                # --- END VIZ_PROMPT FIX ---
-                
+
                 viz_response = loop.run_until_complete(self._run_agent(self.viz_agent, viz_prompt))
                 viz_json_raw = getattr(viz_response, 'data', str(viz_response))
-                
-                # --- ROBUST JSON PARSING LOGIC TO HANDLE PROSE/CODE BLOCKS (PREVIOUS FIX) ---
+
                 if isinstance(viz_json_raw, dict):
                     viz_json = viz_json_raw
                 elif isinstance(viz_json_raw, str):
-                    # Use regex to find and extract the JSON content inside ```json ... ```
                     json_match = re.search(r"```json\s*(.*?)\s*```", viz_json_raw, re.DOTALL)
-                    json_string = viz_json_raw
-
-                    if json_match:
-                        json_string = json_match.group(1).strip()
-                        print("✅ Extracted JSON from Markdown block.")
-                    else:
-                        json_string = json_string.strip()
-                        print("⚠️ No Markdown block found. Attempting to parse raw string.")
-
+                    json_string = json_match.group(1).strip() if json_match else viz_json_raw.strip()
                     try:
-                        if json_string.startswith('{'): 
-                            viz_json = json.loads(json_string)
-                            print("✅ Successfully parsed JSON.")
-                        else:
-                            print(f"❌ Cleaned string does not start with '{{'. Skipping JSON load.")
-                            viz_json = None
-
-                    except json.JSONDecodeError as e:
-                        print(f"❌ Final JSON decoding failed: {e}. Raw (extracted) string sample: {json_string[:200]}...")
+                        viz_json = json.loads(json_string) if json_string.startswith('{') else None
+                    except json.JSONDecodeError:
                         viz_json = None
-                
+
                 if isinstance(viz_json, dict):
                     chart_image = generate_chart_from_json(viz_json)
-                    if chart_image:
-                        print("✅ Chart Image successfully generated (PIL Image).")
-                    else:
-                        print("❌ Chart Image failed to generate (generate_chart_from_json returned None).")
-                else:
-                    print(f"❌ Visualization JSON is not a dictionary or failed to parse. Skipping visualization.")
-            
-            # Step 4: Orchestrate final answer
-            print("4. Running Orchestrator Agent...")
+
+            # Step 4: Orchestrator Agent
+            print("4️⃣ Running Orchestrator Agent...")
             final_prompt = (
                 f"User query: {user_query}\n\n"
                 f"Search results: {search_results}\n\n"
                 f"Structured data: {structured_data}\n\n"
                 f"Visualization: {viz_json if viz_json else 'None'}\n\n"
-                f"Provide a complete, helpful response to the user."
-                f"Provide answers only to the requested query in a concise format. Do not include extra narrative."
+                f"Provide a concise, factual response."
             )
             final_response = loop.run_until_complete(self._run_agent(self.orchestrator, final_prompt))
             final_answer = getattr(final_response, 'data', str(final_response))
 
-            # Store history
+            # Save conversation
             chart_title = viz_json.get("title") if isinstance(viz_json, dict) else ""
             self.conversation_history.append({
-                'query': user_query,
-                'answer': final_answer,
-                'data': structured_data,
-                'visualization': chart_image,
-                'visualization_title': chart_title
+                "query": user_query,
+                "answer": final_answer,
+                "data": structured_data,
+                "visualization": chart_image,
+                "visualization_title": chart_title,
             })
 
             return {
-                'answer': final_answer,
-                'structured_data': structured_data,
-                'visualization': chart_image,
-                'search_results': search_results
+                "answer": final_answer,
+                "structured_data": structured_data,
+                "visualization": chart_image,
+                "search_results": search_results,
             }
 
         except Exception as e:
-            print(f"An unexpected error occurred in process_query: {e}")
+            print(f"❌ Error in process_query: {e}")
             return {
-                'answer': f"An error occurred: {e}",
-                'structured_data': None,
-                'visualization': None,
-                'search_results': None
+                "answer": f"An error occurred: {e}",
+                "structured_data": None,
+                "visualization": None,
+                "search_results": None,
             }
         finally:
             loop.close()
 
     def _needs_visualization(self, query: str) -> bool:
-        viz_keywords = [
-            'compare', 'comparison', 'vs', 'versus', 'trend', 'over time',
-            'chart', 'graph', 'visualize', 'show me', 'plot',
-            'career', 'progression', 'leaders', 'top', 'ranking'
+        keywords = [
+            "compare", "vs", "versus", "trend", "over time", "chart", "graph",
+            "visualize", "show me", "plot", "career", "progression", "leaders", "ranking"
         ]
-        return any(keyword in query.lower() for keyword in viz_keywords)
+        return any(k in query.lower() for k in keywords)
 
-    def chat(self):
-        print("🏀 NBA Stats Chatbot - Ready! Type 'quit' to exit.\n")
-        while True:
-            try:
-                user_input = input("You: ").strip()
-                if user_input.lower() in ['quit', 'exit', 'bye']:
-                    break
-                if not user_input:
-                    continue
 
-                result = self.process_query(user_input)
-                print(f"\n🤖 NBA Stats Bot:\n{result['answer']}\n")
-                if result['visualization']:
-                    result['visualization'].show()
-                print("="*80 + "\n")
+# -----------------------------
+#   FLASK API SETUP
+# -----------------------------
+app = Flask(__name__)
+CORS(app)
+bot = NBAStatsChatbot()
 
-            except KeyboardInterrupt:
-                break
-            except Exception as e:
-                print(f"❌ Error: {e}\n")
+@app.route("/chat", methods=["POST"])
+def chat():
+    try:
+        user_input = request.json.get("message", "")
+        if not user_input:
+            return jsonify({"error": "Missing 'message' field"}), 400
 
-# --- Gradio ---
-def launch_gradio():
-    bot = NBAStatsChatbot()
-
-    def gradio_interface(user_input):
         result = bot.process_query(user_input)
-        answer_text = result.get("answer", "")
-        chart_image = result.get("visualization", None)
-        chart_caption = ""
+        answer = result.get("answer", "")
+        has_chart = bool(result.get("visualization"))
+        chart_title = bot.conversation_history[-1].get("visualization_title", "") if has_chart else ""
 
-        if chart_image:
-            last_entry = bot.conversation_history[-1]
-            chart_caption = f"📊 **{last_entry.get('visualization_title', 'Visualization')}**"
-        else:
-            chart_caption = "⚠️ **Visualization could not be generated.**" 
+        return jsonify({
+            "reply": answer,
+            "has_visualization": has_chart,
+            "chart_title": chart_title,
+        })
 
-        return f"🧠 **Answer:**\n{answer_text}\n\n{chart_caption}", chart_image
+    except Exception as e:
+        print(f"Server error: {e}")
+        return jsonify({"error": str(e)}), 500
 
-    iface = gr.Interface(
-        fn=gradio_interface,
-        inputs=gr.Textbox(label="Ask about NBA stats:", placeholder="e.g. Compare Curry vs Lillard 3PT %"),
-        outputs=[gr.Markdown(label="Answer & Caption"), gr.Image(label="Visualization", type="pil")],
-        title="🏀 NBA Stats Chatbot",
-        description="Ask anything about NBA players, stats, or comparisons.",
-        allow_flagging="never"
-    )
-    iface.launch()
 
-# In main.py
-# In main.py
-def main():
-    bot = NBAStatsChatbot()
-    
-    # HARDCODED for Hugging Face deployment
-    # mode = input("Run in (1) Terminal Mode or (2) Gradio Web Mode? [1/2]: ").strip() # <-- DELETE OR COMMENT OUT THIS LINE
-    mode = "2" # <-- ADD THIS LINE
-    
-    if mode == "2":
-        launch_gradio()
-    else:
-        bot.chat()
-
+# -----------------------------
+#   ENTRY POINT
+# -----------------------------
 if __name__ == "__main__":
-    main()
+    print("🏀 Flask backend running at http://127.0.0.1:8000")
+    app.run(host="127.0.0.1", port=8000, debug=True)
